@@ -1,0 +1,13 @@
+{
+  "name": "tutorials-slides",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Marp slide decks for TA tutorial materials",
+  "scripts": {
+    "build:slides": "bash scripts/build-slides.sh",
+    "watch": "npx @marp-team/marp-cli --watch --theme-set assets/themes"
+  },
+  "devDependencies": {
+    "@marp-team/marp-cli": "^4.0.0"
+  }
+}

@@ -213,6 +213,6 @@ Data → table → plot (5 -10 mins)
 
 # Thanks!
 
-Slides & materials: course content on Blackboard or Download from [Github](https://github.com/XuanlongQ/Tutorials/blob/master/SOCI%203238/week1/slides.pdf).
+Slides & materials: course content on Blackboard or Download from [Github](https://github.com/XuanlongQ/Tutorials/blob/master/SOCI%203238/tutorial1/slides.pdf).
 
 Questions → email (xuanlong@link.cuhk.edu.hk)
