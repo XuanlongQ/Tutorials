@@ -134,14 +134,14 @@ R divides the operators in the following groups:
 
 
 ---
-### Controal Structures
+### Control Structures
 The if Statement
 - An "if statement" is written with the if keyword, and it is used to specify a block of code to be executed if a condition is TRUE.
 - If, else if, else..
 - or 
 
 ---
-### Controal Structures
+### Control Structures
 While Loop
 - With the while loop we can execute a set of statements as long as a condition is TRUE
 - With the break statement, we can stop the loop even if the while condition is TRUE:
