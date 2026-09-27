@@ -24,7 +24,7 @@ Xuanlong QIN (Teaching Assistant)
 1. Why R for digital sociology?
 2. RStudio & R scripts: the basics and syntax
 3. How to write codes? (The logistic of coding)
-4. Control flow & functions
+4. R Programming
 5. Hands-on: from data to a plot
 
 ---
