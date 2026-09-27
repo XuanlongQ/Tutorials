@@ -1,0 +1,103 @@
+---
+title: "tutorial3_answer"
+author: "XuanlongQIN"
+date: '2024-03-04'
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+# Problem set 3- take Amherst as Examples
+## 1. Makeing sure you have installed R Markdown
+```{r}
+library(igraph)
+```
+
+## 2.Clear your Environment
+```{r}
+rm(list = ls())
+```
+
+## 3. Clustering in Network (Take Random Walk as examples)
+### 3.1 Summarzie your data
+```{r}
+
+data_colorado <- read.csv("/Users/xuanlong/Documents/cuhk/courses/3102/tutorial3_materials/dataset/Amherst_College.csv", header = TRUE)
+```
+
+
+### 3.2 Calcute Network Density
+
+```{r}
+set.seed(123) # we need to fix a random seed number to make your code is reproducible
+
+## Create an directed graph from the edge list
+graph_col <- graph.data.frame(data_colorado, directed = TRUE)
+
+### Delete self-loops and multiple Edges
+g_simplified <- simplify(graph_col,remove.multiple = TRUE, remove.loops = TRUE)
+is_simple(g_simplified)
+
+### Calculation
+network_density <- graph.density(g_simplified)
+network_density_2 <- edge_density(g_simplified)
+network_density_2
+
+```
+**Notes. Q1**
+Please Check whether he/she use the simplified graph as the input of graph.density().
+
+If he/she did, then the result won't higher than 1 or lower than 0. Otherwise, His/her result is wrong.
+
+### 3.3 Conducting Clustering Algorithms (Take random walk as an example)
+```{r}
+# Perform the walktrap community detection algorithm
+walktrap_community <- cluster_walktrap(graph_col)
+
+# To see the membership (cluster assignment) of each vertex
+mem_uni <- membership(walktrap_community)
+
+# To see the sizes of the communities
+community_size <- sizes(walktrap_community)
+```
+
+#### 3.4 Define the colors for different communities
+
+```{r}
+
+# Define the colors for the four communities
+community_colors <- c("black", "red", "blue", "gray")
+
+# Map the membership vector to the corresponding colors
+node_colors <- community_colors[membership(walktrap_community)]
+
+
+# Plot the graph with nodes colored by their cluster membership
+plot(graph_col,vertex.color = node_colors,
+     vertex.label.cex = 0.5,
+     edge.width = 0.01,
+     edge.arrow.size=0.1,
+     edge.arrow.width=0.05)
+
+```
+
+
+**Notes: Q3**
+
+No matter whether he/she plots this graph, it won't affect their score, just make sure they change the color of nodes instead of Community in his/her code. Because I don't teach them how to change the color of community.
+
+
+```{r}
+plot(walktrap_community, graph_col, vertex.color = community_colors,
+     vertex.label.cex = 0.5, 
+     edge.width = 0.3,
+     edge.arrow.size = 0.1, 
+     edge.arrow.width = 0.05)
+```
+
+**Notes Q2**
+Please make sure he/she use the original graph as input rather than simplified graph.
+It is quite easy to check it. if this graph has multiple ties between nodes, then he/she uses original graph. If there is only one tie between two nodes, which means he/she in a wrong way!
+
+You can add or minus his/her scores if his/her picture looks beautiful or ugly.

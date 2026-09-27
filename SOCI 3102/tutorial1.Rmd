@@ -1,0 +1,136 @@
+---
+title: "tutorial3_recap"
+author: "XuanlongQIN"
+date: '2024-02-28'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Recap turorial 1 - Basic concepts in R 
+
+### 1.1 Data type
+```{r}
+name <- c("Bob","Alice","Jack")
+name
+class(name)
+```
+### 1.2 Create a dataframe
+```{r}
+name <- c("Bob","Alice","Jack")
+score <- c(80,90,70)
+class <- c (1,2,1)
+students_scores <- data.frame(names = name,scores = score, classes = class)
+
+class(students_scores)
+```
+
+### 1.3 View the data frame
+```{r}
+students_scores
+```
+Learn to use `View()` function to check your dataset.
+
+Example: 
+```
+View(students_scores)
+```
+
+### 1.4 Input external dataset
+```{r}
+# find current path
+getwd()
+
+
+```
+Standard methods:
+
+1. put your file in this folder
+
+2. select your own path
+
+Use `head()` check the first 5 rows' data.
+
+### 1.5 Using `help` function
+`help()` is a system function which could help you know the syntax and arguments of this function.
+
+Example:
+```
+help("data.frame")
+
+```
+
+
+## Recap turorial 2 - igraph in R 
+### 2.1 install igraph
+Checking whether this package has been installed.
+```{r}
+library(igraph)
+```
+
+### 2.2 Create simple graph
+```{r}
+g <- graph(c("A","B","B","C","C","D","D","E","E","A","C"),directed = TRUE)
+plot(g)
+```
+
+### 2.3 Indicators of Networks
+#### 2.3.1 Degree Centrality
+```{r}
+## calculate all vertices
+degree_centrality <- degree(g)
+degree_centrality
+
+degree_centrality_2 <- degree(g,v = c("A","B"))
+degree_centrality_2
+```
+#### 2.3.2 Betweenness Centrality
+```{r}
+## calculate all vertices
+betweenness_centrality <- betweenness(g)
+betweenness_centrality
+```
+
+#### 2.3.3 Closeness Centrality
+```{r}
+## calculate all vertices
+closeness_centrality <- closeness(g)
+closeness_centrality
+```
+
+### 2.4 How to draw a nice picture
+Question: How to distinguish color with gender?
+What I have known is their gender in a vector.
+
+```{r}
+library(igraph)
+g <- graph(c("A", "B", "B", "C", "C", "D", "D", "E", "E", "A", "C"), directed = TRUE)
+plot(g)
+```
+
+```{r}
+## Define the gender
+### create a gender vector
+genders <- c("A" = "male", "B" = "male", "C" = "male", "D" = "female", "E" = "female")
+genders
+
+
+
+
+### get the "person" who is male, use names() function apply to all vectors
+#genders[genders == "male"]
+
+selected_person_male <- names(genders[genders == "male"])
+selected_person_male
+```
+Using `ifelse` loop assign colors of gender
+```{r}
+# Assign colors based on gender
+vertex_colors <- ifelse(V(g)$name %in% selected_person_male, "blue", "red")
+vertex_colors
+# Plot the graph
+plot(g, vertex.color = vertex_colors)
+```
+

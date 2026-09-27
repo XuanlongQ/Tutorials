@@ -1,0 +1,139 @@
+---
+title: "tutorial3"
+author: "XuanlongQIN"
+date: '2024-02-27'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 4. Additional Code
+### 4.1 Random walk
+```{r}
+# Set the seed for reproducibility
+set.seed(123)
+
+# Define the number of observations
+library(igraph)
+
+# Taking a Random walk
+rw <- sample_gnp(30,0.08,directed=FALSE)
+plot(rw)
+class(rw)
+
+random_walk(rw,12,10,stuck = "return")
+random_walk(rw,1,5,stuck = "return")
+
+```
+
+### 4.2 The Zachary Karate Club
+#### 1. Makeing sure you have installed R Markdown
+```{r}
+library("rmarkdown")
+# library(help = "rmarkdown")
+```
+
+#### 2.Clear your Environment
+
+```{r}
+rm(list = ls())
+```
+
+#### 3.Check data
+
+```{r}
+set.seed(123)
+library(igraphdata)
+library(igraph)
+data(karate)
+
+
+## check the first five rows to make sure your data has been correctly loaded
+head(karate)
+
+```
+
+Plot data
+```{r}
+plot(karate)
+```
+
+### 4.3 Clustering algorithms
+```{r}
+kc <- cluster_walktrap(karate)
+```
+```{r}
+# length
+length(kc)
+```
+```{r}
+# sizes
+sizes(kc)
+```
+```{r}
+# membership
+membership(kc)
+```
+```{r}
+# plot
+plot(kc,karate)
+```
+
+### 4.4 Network density
+For comparison, we compute the density and weighted density of the karate club
+```{r}
+kc.cpm1 <- kc  #In case I need this later
+n <- length(V(karate)) #number vertices
+graph.density(karate)
+
+```
+Calculate by ourselves
+```{r}
+length(E(karate))/(n*(n-1)/2)
+```
+
+### 4.5 Change the color of different community
+```{r}
+# get community
+membership <- membership(kc)
+# membership
+# Define the colors for the four communities
+palette <- c("black", "green", "blue", "gray")
+# palette
+
+# Map the membership vector to the corresponding colors
+community_colors <- palette[membership]
+
+# Plot the graph with nodes colored by their cluster membership
+plot(kc, karate, vertex.color = community_colors,
+     vertex.label.cex = 0.5,
+     edge.width = 0.5,
+     edge.arrow.size=0.1,
+     edge.arrow.width=0.05,
+)
+
+```
+
+
+## Notes: Important
+```{r}
+# 1. Do not change your random seed
+set.seed(123) # we need to fix a random seed number to make your code is reproducible
+
+# 2. Get data from CSV file
+library(igraph)
+#data_colorado <- read.csv("C:/Users/s1155186031/Desktop/tutorial_materials/Colorado_College_example.csv")
+data_colorado <- read.csv("/Users/xuanlong/Documents/cuhk/courses/3102/tutorial_materials/Colorado_College_example.csv", header = TRUE)
+
+## Create an directed graph from the edge list
+graph_col <- graph.data.frame(data_colorado, directed = TRUE)
+head(graph_col)
+```
+
+```{r}
+### Delete self-loops and multiple Edges
+g_simplified <- simplify(graph_col,remove.multiple = TRUE, remove.loops = TRUE)
+is_simple(g_simplified)
+```
