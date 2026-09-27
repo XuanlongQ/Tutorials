@@ -1,0 +1,512 @@
+---
+title: "Tutorial_1"
+output: html_document
+date: "2026-09-27"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Learn R basics and syntax
+
+### R Syntax
+
+```{r}
+"hello world"
+```
+
+```{r}
+5
+
+# This is a comment
+
+print ("hello world") # this code is use to print the result.
+
+```
+
+## Work with R variables and data types
+
+### Variable
+
+Variables are containers for storing data values.
+
+```{r}
+name <- "John"
+age <- 40
+
+name   # output "John"
+age    # output 40
+```
+
+Print / Output Variables
+
+```{r}
+name <- "John"
+print(name)
+```
+
+And there are times you must use the print() function to output code, for example when working with for loops (which you will learn more about in a later chapter):
+
+```{r}
+for (x in 1:10) {
+  print(x)
+}
+```
+
+> **`print()` function is a powerful function in coding, a strong debugging tool.**
+
+### Data types
+
+In programming, data type is an important concept.
+
+Variables can store data of different types, and different types can do different things.
+
+In R, variables do not need to be declared with any particular type, and can even change type after they have been set
+
+```{r}
+# numeric
+x <- 10.5
+class(x)
+
+# integer
+x <- 1000L
+class(x)
+
+# complex
+x <- 9i + 3
+class(x)
+
+# character/string
+x <- "R is exciting"
+class(x)
+
+# logical/boolean
+x <- TRUE
+class(x)
+```
+
+Type conversion
+
+```{r}
+x <- 1L # integer
+y <- 2 # numeric
+
+# convert from integer to numeric:
+a <- as.numeric(x)
+
+# convert from numeric to integer:
+b <- as.integer(y)
+
+# print values of x and y
+x
+y
+
+# print the class name of a and b
+class(a)
+class(b)
+```
+
+Why we need convert types?
+
+In R, you can use operators to perform common mathematical operations on numbers.
+
+```{r}
+a <- 4
+b <- "hello" # A string is surrounded by either single quotation marks, or **double quotation marks**:
+
+
+c <- 5.4
+
+
+d <- a + c
+
+# e <- a + b
+print (d)
+# print (e)
+
+```
+
+Logistic variable
+
+- In programming, you often need to know if an expression is true or false.
+
+- When you compare two values, the expression is evaluated and R returns the logical answer
+
+```{r}
+10 > 9    # TRUE because 10 is greater than 9
+10 == 9   # FALSE because 10 is not equal to 9
+10 < 9    # FALSE because 10 is greater than 9
+```
+
+## 2. R Operators and Control structures (if, while, for)
+
+### R Operators
+
+Arithmetic Operators
+
+```{r}
+1+3
+```
+
+Assignment Operators
+
+```{r}
+my_var <- 3
+my_var
+```
+
+Comparison Operators
+
+```{r}
+a = 5
+b = 6
+
+a > b
+```
+
+Logical Operators `&` Element-wise Logical AND operator. Returns TRUE if both elements are TRUE `|` Elementwise- Logical OR operator. Returns TRUE if one of the statements is TRUE
+
+```{r}
+a = 3
+b = 4
+a&b
+```
+
+### Control structures (If statement)
+
+An "if statement" is written with the if keyword, and it is used to specify a block of code to be executed if a condition is TRUE.
+
+```{r}
+a <- 33
+b <- 200
+
+if (b > a) {
+  print("b is greater than a")
+}
+
+if (b < a) {
+  print("someting wrong")
+}
+```
+
+The else if keyword is R's way of saying "if the previous conditions were not true, then try this condition":
+
+```{r}
+a <- 33
+b <- 33
+
+if (b > a) {
+  print("b is greater than a")
+} else if (b < a) {
+  print ("b is smaller than a")
+} else {
+  print( "oh! they are equal")
+}
+```
+
+`or`
+
+The `|` symbol (or) is a logical operator, and is used to combine conditional statements:
+
+```{r}
+a <- 200
+b <- 33
+c <- 500
+
+if (a > b | a > c) {
+  print("At least one of the conditions is true")
+}
+```
+
+### Control structures (while loop)
+
+With the while loop we can execute a set of statements as long as a condition is TRUE:
+
+```{r}
+i <- 1
+while (i < 6) {
+  print(i)
+  i <- i + 1
+}
+```
+
+`break` function With the break statement, we can stop the loop even if the while condition is TRUE:
+
+```{r}
+i <- 1
+while (i < 6) {
+  print(i)
+  i <- i + 1
+  if (i == 4) {
+    break
+  }
+}
+```
+
+For loop
+
+```{r}
+for (x in 1:10) {
+  print(x)
+}
+```
+
+## 3. Create and use functions in R
+
+A function is a block of code which only runs when it is called. - Why we need a function?
+
+Create a function
+
+```{r}
+my_function <- function() {
+  print("we are good!")
+}
+
+my_function ()
+```
+
+Arguments
+
+```{r}
+
+my_function <- function (a,b) {
+  c = a * b
+  return(c)
+}
+
+my_function (1,2)
+
+```
+
+## 4. Work with data structures (vectors, lists, matrices, arrays)
+
+Vectors
+
+A vector is the most basic data structure in R. It contains a list of items of the same type.
+
+```{r}
+# Vector of strings
+fruits <- c("banana", "apple", "orange")
+
+# Print fruits
+fruits
+```
+
+Lists
+
+A list can hold different types of data in one structure. You can combine numbers, strings, vectors, and even other lists.
+
+```{r}
+# List of strings
+thislist <- list("apple", "banana", 50, 100)
+
+# Print the list
+thislist
+```
+
+Matrices
+
+A matrix is a 2D data structure where all elements are of the same type. It is like a table with rows and columns.
+
+```{r}
+# Create a matrix
+thismatrix <- matrix(c(1,2,3,4,5,6), nrow = 3, ncol = 2)
+
+# Print the matrix
+thismatrix
+```
+
+Arrays
+
+An array is like a matrix but can have more than two dimensions. It stores elements of the same type in multiple dimensions.
+
+```{r}
+# An array with one dimension with values ranging from 1 to 24
+thisarray <- c(1:24)
+thisarray
+
+# An array with more than one dimension
+multiarray <- array(thisarray, dim = c(4, 3, 2))
+multiarray
+```
+
+> Arrays are useful for working with 3D or higher-dimensional data.
+
+Data Frames
+
+A data frame is like a table in a spreadsheet. It can hold different types of data across multiple columns.
+
+```{r}
+# Create a data frame
+Data_Frame <- data.frame (
+  Training = c("Strength", "Stamina", "Other"),
+  Pulse = c(100, 150, 120),
+  Duration = c(60, 30, 45)
+)
+
+# Print the data frame
+Data_Frame
+```
+
+## 5. Make plots and visualize data (line, scatter, pie, bar)
+
+`plot()` is commonly used in visualization.
+
+```{r}
+help ("plot")
+```
+
+```{r}
+plot (1,3)
+
+plot(c(1, 8), c(3, 10))
+
+plot(c(1, 2, 3, 4, 5), c(3, 7, 8, 9, 12))
+
+plot(1:10, main="My Graph", xlab="The x-axis", ylab="The y axis")
+
+plot(1:10, type="l")
+
+```
+
+A pie chart is a circular graphical view of data.
+
+Use the pie() function to draw pie charts
+```{r}
+# Create a vector of pies
+x <- c(10,20,30,40)
+
+# Display the pie chart
+pie(x)
+```
+
+Bar Charts
+A bar chart uses rectangular bars to visualize data. Bar charts can be displayed horizontally or vertically. The height or length of the bars are proportional to the values they represent.
+
+Use the barplot() function to draw a vertical bar chart:
+
+```{r}
+# x-axis values
+x <- c("A", "B", "C", "D")
+
+# y-axis values
+y <- c(2, 4, 6, 8)
+
+barplot(y, names.arg = x)
+```
+
+## 6. Perform basic statistics (mean, median, mode)
+
+Data Set
+A data set is a collection of data, often presented in a table.
+
+There is a popular built-in data set in R called "mtcars" (Motor Trend Car Road Tests), which is retrieved from the 1974 Motor Trend US Magazine.
+
+In the examples below (and for the next chapters), we will use the mtcars data set, for statistical purposes.
+
+```{r}
+# Step 1. Check the dataset
+mtcars
+class(mtcars)
+```
+
+Get the information of dataset
+
+```{r}
+# help (mtcars)
+?mtcars
+```
+
+
+Use the dim() function to find the dimensions of the data set, and the names() function to view the names of the variables:
+
+```{r}
+Data_Cars <- mtcars # create a variable of the mtcars data set for better organization
+
+# Use dim() to find the dimension of the data set
+dim(Data_Cars)
+
+# Use names() to find the names of the variables from the data set
+names(Data_Cars)
+```
+
+
+Use the rownames() function to get the name of each row in the first column, which is the name of each car
+```{r}
+Data_Cars <- mtcars
+
+rownames(Data_Cars)
+
+```
+
+Print Variable Values
+If you want to print all values that belong to a variable, access the data frame by using the `$` sign, and the name of the variable (for example mpg (Miles/gallon))
+
+```{r}
+get_mpg <- mtcars$mpg
+get_mpg
+```
+
+Analyzing the data - generally, the first step when you get a data
+
+```{r}
+Data_Cars <- mtcars
+
+summary(Data_Cars)
+
+help(summary)
+```
+
+R Max and Min
+the min() and max() functions can be used to find the lowest or highest value in a set
+
+```{r}
+# Find the largest and smallest value of the variable hp (horsepower).
+Data_Cars <- mtcars
+
+max(Data_Cars$hp)
+min(Data_Cars$hp)
+
+# Also mean() for mean value
+mean(Data_Cars$hp)
+m = mean(Data_Cars$hp)
+cat("mean value is:",m)
+print("mean value is:",m) # why print is not available ?
+median(Data_Cars$hp)
+```
+
+## Hands-on: from data to a plot
+Visualize the relationship between vehicle weight and fuel consumption in the `mtcars` dataset;
+plotting a regression line for this relations;
+color-coding the points by the number of cylinders.
+
+```{r}
+mtcars
+
+# Scatter plot
+plot(mtcars$wt, mtcars$mpg) # wt	Weight (1000 lbs); Miles/(US) gallon
+
+```
+
+Regression model - Next Tutorial
+
+```{r}
+plot(mtcars$wt, mtcars$mpg)
+abline(lm(mpg ~ wt, data = mtcars), col = "red") # lm-linear regression
+```
+
+Visualization
+```{r}
+cyl_f <- factor(mtcars$cyl)
+
+plot(mtcars$wt, mtcars$mpg,
+     col = cyl_f, # different colors for numbers of cylinders 
+     pch = 19) 
+
+legend("topright",
+       legend = levels(cyl_f),
+       col = 1:3,
+       pch = 19,
+       title = "Number of cylinder")
+```
