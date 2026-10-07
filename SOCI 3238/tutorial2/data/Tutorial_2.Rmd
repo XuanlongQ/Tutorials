@@ -1,0 +1,329 @@
+---
+title: "Tutorial_2"
+output: html_document
+date: "2026-10-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Part A · Statistical Models
+
+In Tutorial 1, we described data with `mean()`, `summary()` and plots. Today we ask two further questions:
+
+1. Is a pattern **real**? (hypothesis testing)
+2. How does one variable **explain** another? (regression models)
+
+## 1. Hypothesis testing
+
+Hypothesis testing compares two statements:
+
+- **Null hypothesis (H0)**: nothing is going on (no difference, no association)
+- **Alternative hypothesis (H1)**: something is going on
+
+We compute a **p-value** — the probability of seeing data like this *if H0 is true*.
+
+- p < 0.05 → reject H0 ("statistically significant")
+- p ≥ 0.05 → we cannot reject H0
+
+> A small p-value means "H0 looks unlikely", not "my theory is proven".
+
+### t-test: compare two group means
+
+Question: does fuel efficiency (`mpg`) differ between automatic and manual cars?
+
+```{r}
+# am: 0 = automatic, 1 = manual
+# convert to a factor with readable labels (see Tutorial 1)
+mtcars$am <- factor(mtcars$am,
+                    levels = c(0, 1),
+                    labels = c("automatic", "manual"))
+
+table(mtcars$am)
+
+# t-test: is the mean mpg different between the two groups?
+t.test(mpg ~ am, data = mtcars)
+```
+
+Read the output:
+
+- `mean in group automatic` vs `mean in group manual` — the group means
+- `t = ...` — the test statistic
+- `p-value = ...` — here p < 0.05, so we reject H0: the difference is statistically significant
+- In this sample, manual cars are more fuel-efficient
+
+### chi-square test: association between two categorical variables
+
+Question: is the number of cylinders associated with transmission type?
+
+```{r}
+# cross table
+tbl <- table(mtcars$cyl, mtcars$am)
+tbl
+
+# chi-square test: H0 = no association
+chisq.test(tbl)
+```
+
+Read the output:
+
+- `p-value` < 0.05 → the two variables are associated
+- Look at the cross table to tell the direction of the association
+- **Warning in the output?** Some expected counts are < 5, so the approximation is unreliable. For small tables R offers an alternative — Fisher's exact test:
+
+```{r}
+fisher.test(tbl)
+```
+
+## 2. Linear regression
+
+### Simple linear regression: one predictor
+
+A linear model fits the line that best describes the relationship y ~ x:
+
+y = a + b·x + error
+
+We already drew this line in Tutorial 1's hands-on. Now let's read the numbers.
+
+```{r}
+model1 <- lm(mpg ~ wt, data = mtcars)
+summary(model1)
+```
+
+Read the output:
+
+- `(Intercept)` — a: the predicted mpg when wt = 0
+- `wt` — b: a one-unit (1,000 lbs) increase in weight is associated with a 5.344 mpg **decrease**
+- `Pr(>|t|)` — the p-value of b; here < 0.001, significant
+- `Multiple R-squared` — 0.7528: weight alone explains about 75% of the variation in mpg
+
+Visualize the model:
+
+```{r}
+plot(mtcars$wt, mtcars$mpg)
+abline(model1, col = "red")
+```
+
+### Multiple regression: more than one predictor
+
+```{r}
+model2 <- lm(mpg ~ wt + hp, data = mtcars)
+summary(model2)
+```
+
+- With several predictors, b means: the change in y **holding the other variables constant**
+- Compare `Multiple R-squared` across models: 0.827 (model2) vs 0.753 (model1) — adding hp helps
+- Another criterion: AIC — lower is better
+
+```{r}
+AIC(model1, model2)
+```
+
+### Categorical predictors
+
+Categorical variables must be factors (Tutorial 1):
+
+```{r}
+model3 <- lm(mpg ~ wt + factor(cyl), data = mtcars)
+summary(model3)
+```
+
+- `factor(cyl)6` and `factor(cyl)8` compare against the reference group (4 cylinders)
+- 8-cylinder cars: 4.26 mpg lower than 4-cylinder cars, holding weight constant
+
+## 3. Logistic regression
+
+### When the outcome is binary
+
+Digital sociology examples: retweet or not, follow back or not, purchase or not.
+
+Why not `lm()`? A straight line can predict values outside [0, 1] — meaningless for a probability. Logistic regression keeps predictions inside (0, 1).
+
+```{r}
+# am is now a factor, so the model predicts P(am = "manual")
+model4 <- glm(am ~ wt + hp, data = mtcars, family = binomial)
+summary(model4)
+```
+
+### Interpretation: odds ratios
+
+The coefficients are in **log-odds** — hard to read directly. Convert them with `exp()`:
+
+```{r}
+exp(coef(model4))
+```
+
+Read the output:
+
+- `wt` odds ratio = 0.04: one unit more weight → odds of manual transmission × 0.04 (much less likely)
+- `hp` odds ratio = 1.05: one more hp → odds × 1.05
+- OR = 1 → no effect; OR > 1 → positive association; OR < 1 → negative association
+
+> Rule of thumb: look at your **outcome variable** first, then choose the model.
+
+# Part B · Network Analysis
+
+## 1. What is a network?
+
+A network is a set of **nodes** (vertices) connected by **edges**.
+
+- Nodes — people, accounts, organizations
+- Edges — ties between them (follows, retweets, friendships)
+
+Types of networks:
+
+- **Directed** — A follows B ≠ B follows A (Weibo/Twitter)
+- **Undirected** — friendship is mutual
+- **Weighted** — number of messages, strength of the tie
+
+The most common data format: an **edge list** — one row per tie, with a `from` and a `to` column.
+
+## 2. Build and plot a graph with igraph
+
+```{r}
+# install.packages("igraph")   # run once if not installed
+library(igraph)
+```
+
+Our first example: **Zachary's karate club** (1977). 34 members of a university karate club; after a conflict between the instructor and the administrator, the club split into two groups. The network is built into igraph.
+
+```{r}
+g <- make_graph("Zachary")
+g
+
+# nodes and edges
+V(g)
+E(g)
+
+# how big is the network?
+vcount(g)
+ecount(g)
+```
+
+```{r}
+plot(g)
+```
+
+## 3. Degree & density
+
+**Degree** — how many ties a node has.
+
+- in-degree: followers; out-degree: following
+- in digital sociology, the influencer = high in-degree
+
+```{r}
+deg <- degree(g)
+deg
+
+# who has the most ties?
+V(g)$name[which.max(deg)]
+```
+
+Degree distribution:
+
+```{r}
+hist(degree(g), main = "Degree distribution", xlab = "Degree")
+```
+
+**Density** — how connected the network is overall (0 to 1):
+
+```{r}
+edge_density(g)
+```
+
+## 4. Centrality: who is important?
+
+Different measures capture different kinds of importance:
+
+- **Degree centrality** — most ties (popular, active)
+- **Betweenness centrality** — lies on many shortest paths (bridge, gatekeeper)
+- **Closeness centrality** — close to everyone else (information spreads fast)
+
+```{r}
+bet <- betweenness(g)
+clo <- closeness(g)
+
+# top-3 by each measure
+V(g)$name[order(bet, decreasing = TRUE)[1:3]]   # by betweenness
+V(g)$name[order(clo, decreasing = TRUE)[1:3]]   # by closeness
+```
+
+> The same person can be "important" in one way and not another — choose the measure that fits your research question.
+
+## 5. Community detection
+
+Find groups that are densely connected **within** and sparsely connected **between**.
+
+The karate club really split into two clubs — can the algorithm find this split from the network alone?
+
+```{r}
+cm <- cluster_fast_greedy(g)
+membership(cm)
+
+# how many communities, how big?
+sizes(cm)
+
+# plot with communities highlighted
+plot(cm, g)
+```
+
+- The algorithm recovers the factions using only the network structure, no attribute data
+- Check the two leaders: the instructor is node 1 ("Mr Hi"), the administrator is node 34 ("John A")
+
+```{r}
+V(g)$name[c(1, 34)]
+```
+
+## 6. A social media example
+
+Now a directed follower network of 24 user accounts. The data is in `social_edges.csv` (same folder as this file) — an edge list where each row means "from follows to".
+
+```{r}
+edges <- read.csv("social_edges.csv")
+head(edges)
+
+sg <- graph_from_data_frame(edges, directed = TRUE)
+sg
+
+plot(sg, vertex.size = 8, vertex.label.cex = 0.7)
+```
+
+Find the influencers — top in-degree (followers):
+
+```{r}
+in_deg <- degree(sg, mode = "in")
+sort(in_deg, decreasing = TRUE)
+
+# top-3 influencers
+V(sg)$name[order(in_deg, decreasing = TRUE)[1:3]]
+```
+
+Community structure of the follower network:
+
+```{r}
+# cluster_fast_greedy works on undirected graphs only.
+# For a directed graph, use walktrap (random walks) or infomap instead.
+cm2 <- cluster_walktrap(sg)
+sizes(cm2)
+plot(cm2, sg, vertex.size = 8, vertex.label.cex = 0.7)
+```
+
+> `igraph` works the same way for 34 karate members and 34 million users.
+
+## Hands-on
+
+**Task A · Statistical models** (`mtcars`):
+
+1. t-test — does fuel efficiency differ between automatic and manual cars?
+2. Linear regression — model `mpg` with `wt + hp`; interpret the coefficients and R²
+3. Logistic regression — model `am`; compute and interpret the odds ratios
+
+**Task B · Network analysis:**
+
+1. Build and plot the karate club network
+2. Compute degree and betweenness — who are the top-3 most central?
+3. Run community detection — compare with the real split
+4. Load `social_edges.csv` — find the top influencers and plot the network
+
+**Do:** the hands-on exercises end-to-end on your own machine.
