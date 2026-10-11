@@ -12,8 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 In Tutorial 1, we described data with `mean()`, `summary()` and plots. Today we ask two further questions:
 
-1. Is a pattern **real**? (hypothesis testing)
-2. How does one variable **explain** another? (regression models)
+1.  Is a pattern **real**? (hypothesis testing)
+2.  How does one variable **explain** another? (regression models)
 
 ## 1. Hypothesis testing
 
@@ -24,7 +24,7 @@ Hypothesis testing compares two statements:
 
 We compute a **p-value** — the probability of seeing data like this *if H0 is true*.
 
-- p < 0.05 → reject H0 ("statistically significant")
+- p \< 0.05 → reject H0 ("statistically significant")
 - p ≥ 0.05 → we cannot reject H0
 
 > A small p-value means "H0 looks unlikely", not "my theory is proven".
@@ -50,7 +50,7 @@ Read the output:
 
 - `mean in group automatic` vs `mean in group manual` — the group means
 - `t = ...` — the test statistic
-- `p-value = ...` — here p < 0.05, so we reject H0: the difference is statistically significant
+- `p-value = ...` — here p \< 0.05, so we reject H0: the difference is statistically significant
 - In this sample, manual cars are more fuel-efficient
 
 ### chi-square test: association between two categorical variables
@@ -68,9 +68,9 @@ chisq.test(tbl)
 
 Read the output:
 
-- `p-value` < 0.05 → the two variables are associated
+- `p-value` \< 0.05 → the two variables are associated
 - Look at the cross table to tell the direction of the association
-- **Warning in the output?** Some expected counts are < 5, so the approximation is unreliable. For small tables R offers an alternative — Fisher's exact test:
+- **Warning in the output?** Some expected counts are \< 5, so the approximation is unreliable. For small tables R offers an alternative — Fisher's exact test:
 
 ```{r}
 fisher.test(tbl)
@@ -80,7 +80,7 @@ fisher.test(tbl)
 
 ### Simple linear regression: one predictor
 
-A linear model fits the line that best describes the relationship y ~ x:
+A linear model fits the line that best describes the relationship y \~ x:
 
 y = a + b·x + error
 
@@ -95,7 +95,7 @@ Read the output:
 
 - `(Intercept)` — a: the predicted mpg when wt = 0
 - `wt` — b: a one-unit (1,000 lbs) increase in weight is associated with a 5.344 mpg **decrease**
-- `Pr(>|t|)` — the p-value of b; here < 0.001, significant
+- `Pr(>|t|)` — the p-value of b; here \< 0.001, significant
 - `Multiple R-squared` — 0.7528: weight alone explains about 75% of the variation in mpg
 
 Visualize the model:
@@ -156,9 +156,9 @@ exp(coef(model4))
 
 Read the output:
 
-- `wt` odds ratio = 0.04: one unit more weight → odds of manual transmission × 0.04 (much less likely)
-- `hp` odds ratio = 1.05: one more hp → odds × 1.05
-- OR = 1 → no effect; OR > 1 → positive association; OR < 1 → negative association
+- `wt` odds ratio = 0.0003: one unit more weight → odds of manual transmission × 0.0003 (much less likely)
+- `hp` odds ratio = 1.04: one more hp → odds × 1.04
+- OR = 1 → no effect; OR \> 1 → positive association; OR \< 1 → negative association
 
 > Rule of thumb: look at your **outcome variable** first, then choose the model.
 
@@ -182,16 +182,18 @@ The most common data format: an **edge list** — one row per tie, with a `from`
 ## 2. Build and plot a graph with igraph
 
 ```{r}
-# install.packages("igraph")   # run once if not installed
+# install.packages("igraph")   
+# install.packages("igraphdata") # run once if not installed
 library(igraph)
+
+data("karate", package = "igraphdata")
+g <- karate
+g
 ```
 
 Our first example: **Zachary's karate club** (1977). 34 members of a university karate club; after a conflict between the instructor and the administrator, the club split into two groups. The network is built into igraph.
 
 ```{r}
-g <- make_graph("Zachary")
-g
-
 # nodes and edges
 V(g)
 E(g)
@@ -202,7 +204,9 @@ ecount(g)
 ```
 
 ```{r}
-plot(g)
+# plot(g)
+plot(g, vertex.color = "lightblue")
+
 ```
 
 ## 3. Degree & density
@@ -247,6 +251,7 @@ clo <- closeness(g)
 # top-3 by each measure
 V(g)$name[order(bet, decreasing = TRUE)[1:3]]   # by betweenness
 V(g)$name[order(clo, decreasing = TRUE)[1:3]]   # by closeness
+
 ```
 
 > The same person can be "important" in one way and not another — choose the measure that fits your research question.
@@ -315,15 +320,15 @@ plot(cm2, sg, vertex.size = 8, vertex.label.cex = 0.7)
 
 **Task A · Statistical models** (`mtcars`):
 
-1. t-test — does fuel efficiency differ between automatic and manual cars?
-2. Linear regression — model `mpg` with `wt + hp`; interpret the coefficients and R²
-3. Logistic regression — model `am`; compute and interpret the odds ratios
+1.  t-test — does fuel efficiency differ between automatic and manual cars?
+2.  Linear regression — model `mpg` with `wt + hp`; interpret the coefficients and R²
+3.  Logistic regression — model `am`; compute and interpret the odds ratios
 
 **Task B · Network analysis:**
 
-1. Build and plot the karate club network
-2. Compute degree and betweenness — who are the top-3 most central?
-3. Run community detection — compare with the real split
-4. Load `social_edges.csv` — find the top influencers and plot the network
+1.  Build and plot the karate club network
+2.  Compute degree and betweenness — who are the top-3 most central?
+3.  Run community detection — compare with the real split
+4.  Load `social_edges.csv` — find the top influencers and plot the network
 
 **Do:** the hands-on exercises end-to-end on your own machine.

@@ -26,6 +26,11 @@ Xuanlong QIN (Teaching Assistant)
    - Hypothesis testing — t-test & chi-square
    - Linear regression — `lm()`
    - Logistic regression — `glm()`
+
+
+---
+
+## Agenda
 3. Network Analysis in R
    - Why networks? Nodes & edges
    - Building & plotting graphs with `igraph`
