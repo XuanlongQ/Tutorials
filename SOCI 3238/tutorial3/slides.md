@@ -4,6 +4,15 @@ theme: cuhk
 size: 16:9
 paginate: true
 footer: "SOCI 3238 · Digital Sociology · Tutorial 3"
+style: |
+  /* Slightly smaller type + tighter vertical padding so dense slides fit */
+  section {
+    font-size: 26px;
+    padding: 56px 78.5px;
+  }
+  pre, code {
+    font-size: 0.75em;
+  }
 ---
 
 <!-- _class: lead -->
