@@ -1,0 +1,535 @@
+---
+title: "Tutorial_3"
+output: html_document
+date: "2026-11-09"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Part A · Getting Data from APIs
+
+In Tutorials 1 and 2 we worked with datasets that R gave us ready-made (`mtcars`, the karate club). In real research, you usually have to **collect the data yourself**. Much of the data that interests digital sociologists lives on the web — social media, scholarly databases, open-source communities, government portals.
+
+There are two doors to web data:
+
+1.  **API** — an official door the site provides for programs. It returns structured data (usually **JSON**).
+2.  **Web scraping** — when there is no API, you fetch the webpage itself (HTML, built for humans) and pull out the pieces you need.
+
+> Rule of thumb: **use the API when there is one.** It is cleaner, more stable, and allowed by the site. Scraping is the fallback.
+
+## 1. Install the tools
+
+We need two packages today. Run the `install.packages()` lines only once (remove the `#` first time):
+
+```{r, eval=FALSE}
+# install.packages("httr2")   # talking to APIs
+# install.packages("rvest")   # web scraping
+# install.packages("jsonlite") # reading JSON (already used by httr2)
+```
+
+```{r}
+library(httr2)
+library(rvest)
+library(jsonlite)
+```
+
+## 2. How the web works (30 seconds)
+
+Every time you open a webpage, this happens:
+
+- Your computer (**client**) sends an **HTTP request** to a **server**: "give me this page"
+- The server sends back a **response**
+
+A browser turns the response into a pretty page. But the response itself is just text in one of two languages:
+
+- **HTML** — structure for humans: `<h3>`, `<p>`, `<table>`, …
+- **JSON** — structure for programs: key–value pairs, like nested R lists
+
+An **API** returns JSON. That is why it is so easy to work with in R.
+
+## 3. JSON in one minute
+
+JSON (JavaScript Object Notation) looks like this:
+
+``` json
+{
+  "full_name": "igraph/rigraph",
+  "stargazers_count": 195,
+  "language": "R"
+}
+```
+
+- `{ }` — an object (like an R **list**)
+- `[ ]` — an array (like an R **vector**)
+- Key–value pairs, can be nested inside each other
+
+```{r}
+# R's own version of the same data:
+list(full_name = "igraph/rigraph", stargazers_count = 195, language = "R")
+```
+
+When we ask an API for data, `resp_body_json()` converts the JSON response into exactly this kind of R list. After that, it is just R: navigate with `$` and `[[ ]]`.
+
+## 4. Calling an API from R
+
+The modern package for HTTP requests is **`httr2`** (the older `httr` works similarly).
+
+The three steps:
+
+```{r}
+# 1. build the request
+req <- request("https://api.github.com/repos/igraph/rigraph")
+
+# 2. perform it — send it to the server, get the response
+resp <- req |> req_perform()
+resp
+```
+
+```{r}
+# 3. read the JSON body into an R list
+repo <- resp |> resp_body_json()
+repo$full_name
+repo$stargazers_count
+```
+
+> `|>` (the pipe) passes the result on the left into the next function. `resp |> resp_body_json()` means `resp_body_json(resp)`.
+
+Now that the data is an R list, you can do anything you like with it:
+
+```{r}
+# one-line summary of the whole repository record
+str(repo, max.level = 1)
+```
+
+------------------------------------------------------------------------
+
+## 4. Calling an API from R - Note
+
+The most important thing when you using APIs is **check the document from the provider**.
+
+> Because they provide the interface.
+
+- Cases - Tencent VOD: <https://www.tencentcloud.com/zh/document/product/266/34126> (with parameters)
+- Openalex: <https://help.openalex.org/api/> (without parameters)
+
+## 5. Example 1: GitHub API (no key needed)
+
+GitHub hosts open-source projects — a social world of its own (who contributes to what, which projects are popular). Its API is free for basic queries.
+
+Search for repositories matching a keyword:
+
+```{r}
+resp <- request("https://api.github.com/search/repositories") |>
+  req_url_query(q = "sociology", sort = "stars", per_page = 10) |>
+  req_perform()
+
+repos <- resp |> resp_body_json()
+```
+
+Read the structure first:
+
+```{r}
+names(repos)            # total_count, items, ...
+repos$total_count       # how many sociology repos exist on GitHub?
+length(repos$items)     # how many did we get back? (per_page = 10)
+```
+
+Each element of `items` is one repository. Turn the list of lists into a data frame with `sapply()`:
+
+```{r}
+gh <- data.frame(
+  repo     = sapply(repos$items, function(x) x$full_name),
+  stars    = sapply(repos$items, function(x) x$stargazers_count),
+  language = sapply(repos$items, function(x) x$language)
+)
+gh
+```
+
+```{r}
+# which language is most common among the top repos?
+table(gh$language)
+```
+
+## 6. Example 2: OpenAlex API (no key needed)
+
+[OpenAlex](https://openalex.org/) is a free scholarly database covering papers, authors, institutions and citations. Very useful for social scientists — find literature, see who cites whom.
+
+```{r}
+resp <- request("https://api.openalex.org/works") |>
+  req_url_query(search = "digital sociology", per_page = 10) |>
+  req_perform()
+
+works <- resp |> resp_body_json()
+
+works$meta$count        # total matching works in the database
+length(works$results)   # the first 10
+```
+
+Each work is a **nested** list — authors are inside `authorships`, which is a list of lists. Navigate step by step:
+
+```{r}
+w <- works$results[[1]]      # the first work
+w$title
+w$publication_year
+w$cited_by_count
+
+# authors: a list of authorship records; each has an "author" sub-list
+length(w$authorships)
+w$authorships[[1]]$author$display_name   # first author
+```
+
+Now build a data frame for all 10 works:
+
+```{r}
+title  <- sapply(works$results, function(w) w$title)
+year   <- sapply(works$results, function(w) w$publication_year)
+cites  <- sapply(works$results, function(w) w$cited_by_count)
+
+# first author — must handle works with no authors
+first_author <- sapply(works$results, function(w) {
+  auth <- w$authorships
+  if (length(auth) > 0) auth[[1]]$author$display_name else NA
+})
+
+papers <- data.frame(title = title, first_author = first_author,
+                     year = year, citations = cites)
+papers
+```
+
+```{r}
+# which paper is the most cited?
+papers[which.max(papers$citations), ]
+
+# average publication year
+mean(papers$year)
+```
+
+## 7. API keys & rate limits
+
+- **Keys**: some APIs (Twitter/X, YouTube, NewsAPI) require you to register and get a key, which you add to each request. Never put a key in a script you share — a key is like a password.
+- **Rate limits**: free APIs limit how many requests you can make. GitHub allows 60/hour without a key; the search endpoint only 10/minute. If you hit the limit you get an error (often 403).
+- **Good manners**:
+  - Identify yourself (User-Agent or `mailto=` parameter)
+  - Don't re-download what you already have — save responses to a file
+  - `Sys.sleep()` between requests in a loop
+
+# Part B · Web Scraping
+
+## 8. When there is no API
+
+Most websites offer no API. But the data is there — inside the HTML that your browser renders. **Web scraping** means: fetch the page yourself and pull out the pieces you need.
+
+> Analogy: the API is a served meal; scraping is cooking from the raw ingredients yourself.
+
+For practice we use <http://books.toscrape.com/> — a fake bookstore **designed for practicing scraping**. Everything we do to it is welcome.
+
+## 9. How a webpage is built
+
+A page is HTML — tags give structure, classes and ids give names:
+
+``` html
+<article class="product_pod">
+  <h3><a href="..." title="A Light in the Attic">A Light in the...</a></h3>
+  <p class="price_color">£51.77</p>
+  <p class="star-rating Three">...stars...</p>
+</article>
+```
+
+To scrape, we need three things:
+
+1.  Fetch the HTML: `read_html()`
+2.  Select elements with a **CSS selector**: `html_elements()`
+3.  Extract what we want: `html_text()`, `html_attr()`, `html_table()`
+
+## 10. rvest basics
+
+```{r}
+# fetch and parse page 1 of the bookstore
+html <- read_html("http://books.toscrape.com/")
+
+html
+```
+
+Select all links inside `<h3>` headings and read their `title` attribute:
+
+```{r}
+html |> html_elements("h3 a") |> html_attr("title")
+```
+
+Prices: text inside elements with class `price_color`:
+
+```{r}
+html |> html_elements("p.price_color") |> html_text()
+```
+
+> **CSS selector cheat sheet**: `h3` (all `<h3>` tags) · `.price_color` (class) · `#main` (id) · `h3 a` (a inside h3) · `p.star-rating` (p with that class). Find selectors in your browser: right-click → Inspect, or use the SelectorGadget extension.
+
+## 11. Example: page 1 of the bookstore
+
+Goal: a data frame of all 20 books on page 1 with title, price and star rating.
+
+```{r}
+titles  <- html |> html_elements("h3 a") |> html_attr("title")
+prices  <- html |> html_elements("p.price_color") |> html_text()
+ratings <- html |> html_elements("p.star-rating") |> html_attr("class")
+ratings <- gsub("star-rating ", "", ratings)   # "star-rating Three" -> "Three"
+
+books <- data.frame(title = titles, price = prices, rating = ratings)
+head(books)
+```
+
+Check that the three vectors have the same length — if one selector is wrong, lengths differ:
+
+```{r}
+length(titles); length(prices); length(ratings)
+```
+
+## 12. From text to numbers
+
+Scraped data always arrives as **text**. Clean it before analyzing:
+
+```{r}
+books$price <- as.numeric(gsub("£", "", books$price))
+books$price
+
+mean(books$price)          # average price on page 1
+table(books$rating)        # distribution of ratings
+```
+
+Once it is a clean data frame, all the Tutorial 1 & 2 tools apply — plots, models, networks.
+
+## 13. Pagination: scraping several pages
+
+The bookstore has 50 pages. Page 1 is the homepage; pages 2–50 live at `catalogue/page-N.html`. Because the URL is just a string, we can loop over it:
+
+```{r}
+books_all <- data.frame()
+
+for (i in 1:3) {
+  url <- if (i == 1) "http://books.toscrape.com/" else
+         paste0("http://books.toscrape.com/catalogue/page-", i, ".html")
+
+  page <- read_html(url)
+  Sys.sleep(1)   # be polite: wait 1 second between requests
+
+  titles  <- page |> html_elements("h3 a") |> html_attr("title")
+  prices  <- page |> html_elements("p.price_color") |> html_text()
+  ratings <- page |> html_elements("p.star-rating") |> html_attr("class")
+  ratings <- gsub("star-rating ", "", ratings)
+
+  page_df <- data.frame(title = titles, price = prices, rating = ratings)
+  books_all <- rbind(books_all, page_df)
+}
+
+books_all$price <- as.numeric(gsub("£", "", books_all$price))
+nrow(books_all)
+```
+
+## 14. Ethics & legality
+
+Scraping is a request like any other — what makes it right or wrong is **how** you do it:
+
+- Check **robots.txt** first — <http://books.toscrape.com/robots.txt> explicitly welcomes crawlers; many real sites restrict parts of themselves
+- Respect the site's **Terms of Service** — some forbid scraping entirely
+- **Don't hammer** the server: `Sys.sleep()`, cache what you download, don't re-request
+- Scraped data ≠ free data: **copyright** and **personal data** protections still apply
+- Same research ethics as any data collection: privacy, consent, purpose
+- When in doubt: ask the site owner, or use an official API/dataset
+
+**Dynamic pages (advanced)**: some sites build their content with JavaScript after the page loads, so `read_html()` sees an empty shell. Options: (1) find the API the page itself calls — DevTools → Network tab; (2) drive a real browser with `chromote` or `playwright`; (3) `RSelenium`. For this course, prefer sites that render in plain HTML.
+
+## Hands-on
+
+**Task A · APIs:**
+
+1.  GitHub — search repositories for "sociology", sorted by stars. Which repository has the most stars? Which language is most common among the top 10?
+2.  OpenAlex — fetch 10 works matching "digital sociology". Build a data frame of title, year and citations. Which paper is the most cited? What is the average publication year?
+3.  Challenge — OpenAlex gives nested author lists. Extract the **first author** of each work too.
+
+**Task B · Web scraping:**
+
+1.  Scrape books.toscrape.com page 1: title, price, rating → data frame
+2.  Extend to pages 1–3 with a loop (remember `Sys.sleep()`!)
+3.  With the combined data frame: average price? most common rating? any pattern between price and rating (e.g. `boxplot(price ~ rating)`)?
+
+**Do:** the hands-on exercises end-to-end on your own machine.
+
+> **Network slow or blocked?** The materials folder contains cached copies so you can keep working offline: `books_page1.html`, `openalex_digital_sociology.json`, `github_sociology_repos.json`. Load them with `read_html("books_page1.html")` and `fromJSON("openalex_digital_sociology.json")` — everything else is the same.
+
+```{r, eval=FALSE}
+# offline fallback demo
+html_offline <- read_html("books_page1.html")      # same selectors work
+works_offline <- fromJSON("openalex_digital_sociology.json")  # same $ navigation
+```
+
+**Task C · Scraping data by using LLMs:**
+
+1.  set prompting
+
+"I would like to scrape the **research interests** of all the professors listed on this webpage: <https://www.soc.cuhk.edu.hk/people/faculty/>. Could you provide me with some R code to do this?"
+
+```{r}
+# Install packages if needed:
+# install.packages(c("rvest", "stringr", "dplyr", "purrr", "readr", "tibble"))
+
+library(rvest)
+library(stringr)
+library(dplyr)
+library(purrr)
+library(readr)
+library(tibble)
+
+url <- "https://www.soc.cuhk.edu.hk/people/faculty/"
+
+# 1. Download the webpage and extract text while preserving line breaks
+page <- read_html(url)
+
+lines <- page |>
+  html_element("body") |>
+  html_text2() |>
+  str_split("\\n") |>
+  unlist() |>
+  str_squish()
+
+# Remove empty lines
+lines <- lines[nzchar(lines)]
+
+# 2. Exclude the Lecturers section and everything after it
+lecturers_position <- which(
+  str_detect(lines, regex("^Lecturers$", ignore_case = TRUE))
+)
+
+if (length(lecturers_position) > 0L) {
+  lines <- lines[seq_len(lecturers_position[1] - 1L)]
+}
+
+# 3. Locate professor titles, including assistant and associate professors
+title_pattern <- paste0(
+  "^(?:(?:Chair\\s+and|Vice-Chancellor|Assistant|Associate)\\s+)?",
+  "Professor$"
+)
+
+title_positions <- which(
+  str_detect(lines, regex(title_pattern, ignore_case = TRUE))
+)
+
+if (length(title_positions) == 0L) {
+  stop(
+    "No professor titles found. Check whether the page loaded correctly ",
+    "or whether its structure has changed."
+  )
+}
+
+# 4. Locate each faculty member's English name
+# Expected order: English name, optional Chinese name, title, research interests
+name_positions <- map_int(title_positions, function(position) {
+  previous <- position - 1L
+
+  if (previous < 1L) {
+    stop("Unexpected page structure: no name found before a professor title.")
+  }
+
+  # If the preceding line contains only a Chinese name,
+  # the English name should be one line earlier
+  chinese_name_only <- str_detect(lines[previous], "\\p{Han}") &&
+    !str_detect(lines[previous], "[A-Za-z]")
+
+  name_position <- if (chinese_name_only) previous - 1L else previous
+
+  if (name_position < 1L) {
+    stop("Unexpected page structure: English name could not be located.")
+  }
+
+  name_position
+})
+
+# 5. Extract each faculty member's details from their text block
+faculty <- map_dfr(seq_along(title_positions), function(i) {
+  title_position <- title_positions[i]
+  name_position <- name_positions[i]
+
+  # Each block ends immediately before the next faculty member's name
+  block_end <- if (i < length(title_positions)) {
+    name_positions[i + 1L] - 1L
+  } else {
+    length(lines)
+  }
+
+  block <- lines[seq.int(title_position, block_end)]
+
+  interests_position <- which(
+    str_detect(
+      block,
+      regex("^Research Interests\\s*:?", ignore_case = TRUE)
+    )
+  )
+
+  research_interests <- NA_character_
+
+  if (length(interests_position) > 0L) {
+    label_position <- interests_position[1]
+
+    # Handle interests appearing on the same line as the label
+    same_line <- str_remove(
+      block[label_position],
+      regex("^Research Interests\\s*:?\\s*", ignore_case = TRUE)
+    )
+
+    # Collect any additional lines following the label
+    following_lines <- if (label_position < length(block)) {
+      block[seq.int(label_position + 1L, length(block))]
+    } else {
+      character()
+    }
+
+    research_interests <- str_squish(
+      paste(c(same_line, following_lines), collapse = " ")
+    )
+
+    if (!nzchar(research_interests)) {
+      research_interests <- NA_character_
+    }
+  }
+
+  # Extract the optional Chinese name
+  chinese_name <- if (name_position + 1L < title_position) {
+    paste(
+      lines[seq.int(name_position + 1L, title_position - 1L)],
+      collapse = " "
+    )
+  } else {
+    NA_character_
+  }
+
+  tibble(
+    name = lines[name_position],
+    chinese_name = chinese_name,
+    title = lines[title_position],
+    research_interests = research_interests
+  )
+})
+
+# Optional: keep only full professors
+# faculty <- faculty |>
+#   filter(title %in% c("Professor", "Chair and Professor"))
+
+# 6. Display the results
+print(faculty, n = Inf, width = Inf)
+
+# 7. Save a CSV with a UTF-8 BOM for compatibility with Excel
+output_file <- "cuhk_sociology_professors.csv"
+write_excel_csv(faculty, output_file)
+
+cat("\nExtracted", nrow(faculty), "faculty members.\n")
+cat("Saved to:", file.path(getwd(), output_file), "\n")
+
+# Warn if any research interests are missing
+if (anyNA(faculty$research_interests)) {
+  warning(
+    "Research interests are missing for some faculty members. ",
+    "Check the webpage structure."
+  )
+}
+```
