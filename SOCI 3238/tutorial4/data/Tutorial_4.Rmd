@@ -1,0 +1,352 @@
+---
+title: "Tutorial_4"
+output: html_document
+date: "2026-11-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r install, eval=FALSE}
+# Run once if you do not have the packages yet
+# install.packages("quanteda")
+# install.packages("topicmodels")
+# install.packages("ellmer")
+```
+
+## 1. From text to numbers
+
+Computers are good at numbers, but text is just strings. Before we can
+analyse text, we need to translate it into numbers. The workhorse is the
+**document-feature matrix (dfm)**: one row per document, one column per word,
+and each cell counts how many times a word appears in a document.
+
+R has a dedicated package for text analysis: **quanteda**.
+It also ships a built-in corpus of 60 US presidential inaugural addresses,
+which we will use for the whole tutorial.
+
+```{r}
+library(quanteda)
+
+corp <- data_corpus_inaugural   # 60 speeches, 1789-2025
+
+corp                            # what is inside?
+docvars(corp)                   # Year, President, Party for each speech
+
+# Step 1: split each speech into words (tokens), drop punctuation
+tok <- tokens(corp, remove_punct = TRUE)
+
+# Step 2: count words per document -> the document-feature matrix
+dfm_t <- dfm(tok)
+
+dfm_t                           # 60 documents x 9,573 word types
+```
+
+A dfm is a table: rows are speeches, columns are words. Nearly all of
+today's methods start from this table.
+
+## 2. Dictionary methods
+
+The dictionary method counts how often words from a **predefined list**
+appear in each document. The researcher decides what matters, and R does
+the counting.
+
+### A mini dictionary of our own
+
+```{r}
+mini <- dictionary(list(
+  war     = c("war", "battle", "military", "soldiers"),
+  peace   = c("peace", "harmony", "friendship"),
+  economy = c("economy", "tax", "trade", "industry")
+))
+
+counts <- dfm_lookup(dfm_t, mini)  # count list words in each speech
+counts                             # 60 docs x 3 categories
+
+head(convert(counts, to = "data.frame"))
+```
+
+`dictionary()` takes a list of word lists. `dfm_lookup()` counts the
+matches. This is how classic content analysis works - transparent and
+reproducible, because anyone can read the word list.
+
+### A real dictionary: Lexicoder Sentiment (LSD)
+
+The Lexicoder Sentiment Dictionary (Young & Soroka 2012) contains lists
+of positive words ("happy", "freedom", "progress") and negative words
+("war", "crisis", "fear"). It ships with quanteda:
+
+```{r}
+data_dictionary_LSD2015            # have a look at the lists
+
+pos_neg <- dictionary(list(
+  positive = data_dictionary_LSD2015$positive,
+  negative = data_dictionary_LSD2015$negative
+))
+
+sent <- dfm_lookup(dfm_t, pos_neg)    # 60 x 2 counts
+
+# a sentiment score for each speech: (pos - neg) / (pos + neg)
+tab <- cbind(docvars(corp), convert(sent, to = "data.frame"))
+tab$score <- with(tab, (positive - negative) / (positive + negative))
+
+head(tab[, c("Year", "President", "Party", "score")], 10)
+```
+
+The score runs from -1 (all negative words) to +1 (all positive words).
+
+```{r}
+# Sentiment over time, coloured by party
+plot(tab$Year, tab$score,
+     pch = 19,
+     col = as.numeric(factor(tab$Party)),
+     xlab = "Year", ylab = "sentiment score")
+
+# average sentiment by party
+tapply(tab$score, tab$Party, mean)
+```
+
+Which president was most positive? most negative? Any pattern?
+
+> A dictionary measures the *presence* of topics. It cannot tell you *how*
+> the topic is discussed ("not happy" is not "happy"). Keep that in mind.
+
+## 3. Topic modelling
+
+A dictionary needs you to decide the categories in advance. **Topic
+modelling** turns it around: the algorithm discovers themes from the data.
+Words that often travel together ("goal", "match", "coach") signal a
+latent topic. LDA (Latent Dirichlet Allocation, Blei et al. 2003) is the
+classic algorithm:
+
+- each document is a **mixture** of topics
+- each topic is a **distribution** over words
+
+### Fit an LDA model
+
+```{r}
+library(topicmodels)
+
+# clean the dfm: remove stopwords ("the", "of" ...) and very rare words
+dfm_clean <- dfm(tokens_remove(tok, stopwords("en")))
+dfm_clean <- dfm_trim(dfm_clean, min_docfreq = 5)
+
+# convert the dfm to the format topicmodels expects
+dtm <- convert(dfm_clean, to = "topicmodels")
+
+set.seed(2026)                     # LDA is random - fix the seed!
+lda <- LDA(dtm, k = 5, control = list(seed = 2026))
+```
+
+`k` is the number of topics to look for - your choice.
+
+```{r}
+terms(lda, 8)          # top 8 words of each topic
+```
+
+The model only gives word lists. **You** name the topics. Can you give
+each of the 5 topics a label?
+
+```{r}
+topics(lda)                        # most likely topic for each speech
+tail(topics(lda), 6)               # the last six presidents
+
+posterior(lda)$topics              # 60 x 5: share of each topic per speech
+posterior(lda)$topics["2017-Trump", ]   # topic shares of one speech
+
+# how much of the corpus is each topic?
+colMeans(posterior(lda)$topics)
+```
+
+```{r}
+# Which topics dominate? Try a simple barplot
+share <- posterior(lda)$topics
+barplot(colMeans(share), names.arg = 1:5,
+        xlab = "topic", ylab = "average share")
+```
+
+Try k = 4 and k = 6. Which k gives topics you can actually name?
+
+> Topic models *propose* structure. Garbage in, garbage out - and even
+> good output needs a human to interpret it.
+
+## 4. Embeddings
+
+Counting treats "war" and "battle" as completely different columns - but
+they mean similar things. **Word embeddings** fix this: every word becomes
+a dense vector of numbers (here: 50 numbers), trained on the idea that
+similar words appear in similar contexts (Firth 1957). Similar meanings
+end up close together in vector space.
+
+We use **GloVe** vectors (Pennington et al. 2014) trained on 6 billion
+tokens of Wikipedia and news. A compact version of the top 30,000 words
+is saved in this folder so everything works offline:
+
+```{r}
+glove <- readRDS("glove_top30k.rds")   # 29999 words x 50 numbers
+dim(glove)
+
+glove["democracy", ]                   # one row = one word vector
+```
+
+### Similarity
+
+The distance between two word vectors is their **cosine similarity**:
+1 = same direction, 0 = unrelated, -1 = opposite.
+
+```{r}
+cos_sim <- function(a, b) sum(a * b) / sqrt(sum(a^2) * sum(b^2))
+
+cos_sim(glove["war", ], glove["peace", ])          # 0.644
+cos_sim(glove["war", ], glove["battlefield", ])    # 0.636
+cos_sim(glove["war", ], glove["banana", ])         # ?
+```
+
+### Nearest neighbours
+
+```{r}
+nearest <- function(word, n = 8) {
+  sims <- apply(glove, 1, function(r) cos_sim(glove[word, ], r))
+  sort(sims, decreasing = TRUE)[2:(n + 1)]   # skip the word itself
+}
+
+nearest("democracy")
+nearest("immigration")
+nearest("inequality")
+```
+
+The neighbours are not synonyms from a dictionary - the model learned
+them from 6 billion tokens of real text. Try your own words: "gender",
+"protest", "internet".
+
+### The analogy trick
+
+```{r}
+# king - man + woman = ?
+target <- glove["king", ] - glove["man", ] + glove["woman", ]
+sort(apply(glove, 1, function(r) cos_sim(target, r)),
+     decreasing = TRUE)[1:6]
+```
+
+Try `paris - france + china`. What do you get?
+
+### Visualising word vectors
+
+```{r}
+words <- c("democracy","freedom","war","peace","economy","tax",
+           "family","education","science","internet","immigration",
+           "inequality","government","rights","market","religion")
+
+pca <- prcomp(glove[words, ], scale. = TRUE)  # shrink 50-d to 2-d
+
+plot(pca$x[, 1], pca$x[, 2], type = "n",
+     xlab = "PC1", ylab = "PC2")
+text(pca$x[, 1], pca$x[, 2], labels = words, cex = 0.9)
+```
+
+Words that cluster together are used in similar contexts. Which clusters
+do you see?
+
+> Important: embeddings are mirrors of their training corpus - they
+> inherit its biases (Bolukbasi et al. 2016). Treat them as data about
+> society, not neutral facts.
+
+## 5. LLMs
+
+Dictionaries, topic models and embeddings all reduce text to numbers.
+**Large language models** (GPT, Claude, DeepSeek, Llama...) take a
+different route: they read the text and follow an instruction. They can
+classify, extract or summarise text with zero (or a few) examples, which
+makes them powerful *annotators* for research.
+
+The workflow is: design the task -> write the prompt -> call the API ->
+**validate a sample yourself**.
+
+In R, the package is **ellmer**:
+
+```{r llm, eval=FALSE}
+library(ellmer)
+
+# Option 1: a cloud API (works with DeepSeek, ChatGPT, any OpenAI-compatible API)
+chat <- chat_openai(
+  system_prompt = "You are a sociology research assistant. Classify each news headline into ONE topic: Economy, Politics, Culture, or Technology. Reply with only the topic name.",
+  base_url = "https://api.deepseek.com",       # DeepSeek; ChatGPT uses the default
+  api_key = Sys.getenv("DEEPSEEK_API_KEY")     # never put the key in your script!
+)
+
+chat$chat("Hong Kong stock market falls sharply amid global trade concerns")
+# [1] "Economy"
+
+# Option 2: a free local model on your own laptop (nothing leaves your machine)
+# install ollama from https://ollama.com first, then:
+chat_local <- chat_ollama(model = "deepseek-r1:7b")
+chat_local$chat("Local community organizes a volunteer day to clean up the harbour")
+# [1] "Culture"
+```
+
+`Sys.getenv("DEEPSEEK_API_KEY")` reads the key from your environment, so
+the key never appears in the script itself. You can set it in R with
+`Sys.setenv(DEEPSEEK_API_KEY = "your-key")` for the current session.
+
+If you have no API access, read the example file in this folder - it
+contains five headlines classified by a local deepseek-r1 model:
+
+```{r}
+ex <- jsonlite::fromJSON("llm_example.json")
+ex
+```
+
+Do you agree with all five labels?
+
+> Model answers are proposals to verify, not facts. Always check a sample
+> yourself, and report the model, version and prompt you used.
+
+## 6. Hands-on: four methods on one corpus
+
+One corpus - the 60 inaugural speeches - four methods.
+
+### A. Dictionary
+
+```{r}
+# 1. design your own mini dictionary (e.g. freedom / slavery / religion)
+# 2. count it in the speeches with dfm_lookup()
+# 3. which president uses your words most?
+```
+
+### B. Topic model
+
+```{r}
+# 1. fit LDA with k = 4 and k = 6 (set.seed(2026))
+# 2. label the topics from their top words
+# 3. posterior(lda)$topics["2021-Biden", ] - which topic dominates?
+```
+
+### C. Embeddings
+
+```{r}
+# 1. nearest("democracy") - already done above; try three words of your own
+# 2. the analogy: paris - france + china
+# 3. add two words of your choice to the PCA plot - do they land where you expect?
+```
+
+### D. LLM
+
+```{r}
+# 1. classify these three headlines yourself FIRST (human coder!)
+# 2. then classify them with chat_openai() or chat_ollama()
+# 3. compare: where do you and the model disagree?
+
+headlines <- c(
+  "Hong Kong announces measures to support first-time home buyers",
+  "City orchestra wins international award for contemporary music",
+  "Unemployment rate drops to a 10-year low"
+)
+```
+
+### Reflection questions
+
+- Which method would you use to (a) replicate a published coding scheme,
+  (b) explore a brand-new corpus, (c) measure how similar two documents
+  are, (d) code thousands of open-ended survey answers?
+- What does each method miss?

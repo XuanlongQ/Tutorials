@@ -1,0 +1,27 @@
+[
+  {
+    "headline": "Hong Kong government announces a new tax policy to boost innovation and technology industries",
+    "topic": "Economy",
+    "why": "The policy aims at industry and economic development."
+  },
+  {
+    "headline": "Local community organizes a volunteer day to clean up the harbour",
+    "topic": "Culture",
+    "why": "Community activity and civic life, not economics or politics."
+  },
+  {
+    "headline": "CUHK researchers publish a study on social inequality and mental health",
+    "topic": "Politics",
+    "why": "The model treated societal issues as policy-relevant politics."
+  },
+  {
+    "headline": "Hong Kong stock market falls sharply amid global trade concerns",
+    "topic": "Economy",
+    "why": "Stock market and trade are economic signals."
+  },
+  {
+    "headline": "Hong Kong students win gold medals at the International Film Festival",
+    "topic": "Culture",
+    "why": "A creative/cultural achievement."
+  }
+]

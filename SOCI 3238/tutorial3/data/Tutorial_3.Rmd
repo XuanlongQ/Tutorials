@@ -81,7 +81,7 @@ The three steps:
 ```{r}
 # 1. build the request
 req <- request("https://api.github.com/repos/igraph/rigraph")
-
+req
 # 2. perform it — send it to the server, get the response
 resp <- req |> req_perform()
 resp
