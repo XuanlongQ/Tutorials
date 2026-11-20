@@ -2,6 +2,9 @@
 title: "Tutorial_4"
 output: html_document
 date: "2026-11-23"
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
@@ -19,12 +22,12 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Computers are good at numbers, but text is just strings. Before we can
 analyse text, we need to translate it into numbers. The workhorse is the
-**document-feature matrix (dfm)**: one row per document, one column per word,
-and each cell counts how many times a word appears in a document.
+**document-feature matrix (dfm)**: one row per document, one column per
+word, and each cell counts how many times a word appears in a document.
 
-R has a dedicated package for text analysis: **quanteda**.
-It also ships a built-in corpus of 60 US presidential inaugural addresses,
-which we will use for the whole tutorial.
+R has a dedicated package for text analysis: **quanteda**. It also ships
+a built-in corpus of 60 US presidential inaugural addresses, which we
+will use for the whole tutorial.
 
 ```{r}
 library(quanteda)
@@ -109,16 +112,17 @@ tapply(tab$score, tab$Party, mean)
 
 Which president was most positive? most negative? Any pattern?
 
-> A dictionary measures the *presence* of topics. It cannot tell you *how*
-> the topic is discussed ("not happy" is not "happy"). Keep that in mind.
+> A dictionary measures the *presence* of topics. It cannot tell you
+> *how* the topic is discussed ("not happy" is not "happy"). Keep that
+> in mind.
 
 ## 3. Topic modelling
 
 A dictionary needs you to decide the categories in advance. **Topic
-modelling** turns it around: the algorithm discovers themes from the data.
-Words that often travel together ("goal", "match", "coach") signal a
-latent topic. LDA (Latent Dirichlet Allocation, Blei et al. 2003) is the
-classic algorithm:
+modelling** turns it around: the algorithm discovers themes from the
+data. Words that often travel together ("goal", "match", "coach") signal
+a latent topic. LDA (Latent Dirichlet Allocation, Blei et al. 2003) is
+the classic algorithm:
 
 - each document is a **mixture** of topics
 - each topic is a **distribution** over words
@@ -174,10 +178,10 @@ Try k = 4 and k = 6. Which k gives topics you can actually name?
 ## 4. Embeddings
 
 Counting treats "war" and "battle" as completely different columns - but
-they mean similar things. **Word embeddings** fix this: every word becomes
-a dense vector of numbers (here: 50 numbers), trained on the idea that
-similar words appear in similar contexts (Firth 1957). Similar meanings
-end up close together in vector space.
+they mean similar things. **Word embeddings** fix this: every word
+becomes a dense vector of numbers (here: 50 numbers), trained on the
+idea that similar words appear in similar contexts (Firth 1957). Similar
+meanings end up close together in vector space.
 
 We use **GloVe** vectors (Pennington et al. 2014) trained on 6 billion
 tokens of Wikipedia and news. A compact version of the top 30,000 words
@@ -192,8 +196,8 @@ glove["democracy", ]                   # one row = one word vector
 
 ### Similarity
 
-The distance between two word vectors is their **cosine similarity**:
-1 = same direction, 0 = unrelated, -1 = opposite.
+The distance between two word vectors is their **cosine similarity**: 1
+= same direction, 0 = unrelated, -1 = opposite.
 
 ```{r}
 cos_sim <- function(a, b) sum(a * b) / sqrt(sum(a^2) * sum(b^2))
@@ -260,8 +264,8 @@ different route: they read the text and follow an instruction. They can
 classify, extract or summarise text with zero (or a few) examples, which
 makes them powerful *annotators* for research.
 
-The workflow is: design the task -> write the prompt -> call the API ->
-**validate a sample yourself**.
+The workflow is: design the task -\> write the prompt -\> call the API
+-\> **validate a sample yourself**.
 
 In R, the package is **ellmer**:
 
@@ -275,14 +279,7 @@ chat <- chat_openai(
   api_key = Sys.getenv("DEEPSEEK_API_KEY")     # never put the key in your script!
 )
 
-chat$chat("Hong Kong stock market falls sharply amid global trade concerns")
-# [1] "Economy"
 
-# Option 2: a free local model on your own laptop (nothing leaves your machine)
-# install ollama from https://ollama.com first, then:
-chat_local <- chat_ollama(model = "deepseek-r1:7b")
-chat_local$chat("Local community organizes a volunteer day to clean up the harbour")
-# [1] "Culture"
 ```
 
 `Sys.getenv("DEEPSEEK_API_KEY")` reads the key from your environment, so
@@ -299,8 +296,8 @@ ex
 
 Do you agree with all five labels?
 
-> Model answers are proposals to verify, not facts. Always check a sample
-> yourself, and report the model, version and prompt you used.
+> Model answers are proposals to verify, not facts. Always check a
+> sample yourself, and report the model, version and prompt you used.
 
 ## 6. Hands-on: four methods on one corpus
 
@@ -348,5 +345,5 @@ headlines <- c(
 
 - Which method would you use to (a) replicate a published coding scheme,
   (b) explore a brand-new corpus, (c) measure how similar two documents
-  are, (d) code thousands of open-ended survey answers?
+      are, (d) code thousands of open-ended survey answers?
 - What does each method miss?
